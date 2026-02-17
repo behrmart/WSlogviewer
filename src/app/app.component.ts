@@ -16,11 +16,27 @@ interface EventView {
   searchable: string;
 }
 
-interface MetaEntry {
-  key: string;
-  value: string;
+interface JsonPreviewTarget {
   rawValue: unknown;
   rawJsonCache?: string;
+}
+
+interface MetaEntry extends JsonPreviewTarget {
+  key: string;
+  value: string;
+}
+
+interface PrettyFact {
+  label: string;
+  value: string;
+}
+
+interface PrettyMetadataBlock extends JsonPreviewTarget {
+  key: string;
+  title: string;
+  subtitle: string;
+  facts: PrettyFact[];
+  highlights: string[];
 }
 
 @Component({
@@ -37,6 +53,7 @@ export class AppComponent {
   applicationName = '-';
   totalEvents = 0;
   metaEntries: MetaEntry[] = [];
+  prettyMetaBlocks: PrettyMetadataBlock[] = [];
 
   searchText = '';
   levelFilter = 'all';
@@ -93,19 +110,19 @@ export class AppComponent {
     return this.expandedMetaKey === metaKey;
   }
 
-  getMetaRawJson(entry: MetaEntry): string {
-    if (entry.rawJsonCache) {
-      return entry.rawJsonCache;
+  getMetaRawJson(target: JsonPreviewTarget): string {
+    if (target.rawJsonCache) {
+      return target.rawJsonCache;
     }
 
     const maxChars = 120000;
-    const rawJson = this.toJsonString(entry.rawValue, 2);
-    entry.rawJsonCache =
+    const rawJson = this.toJsonString(target.rawValue, 2);
+    target.rawJsonCache =
       rawJson.length > maxChars
         ? `${rawJson.slice(0, maxChars)}\n... [truncated at ${maxChars} characters]`
         : rawJson;
 
-    return entry.rawJsonCache;
+    return target.rawJsonCache;
   }
 
   private loadFile(file: File): void {
@@ -149,6 +166,7 @@ export class AppComponent {
         meta?.['environmentType']
       ]) || this.inferApplicationFromEvents(events) || 'unknown';
 
+    this.prettyMetaBlocks = this.buildPrettyMetaBlocks(meta);
     this.metaEntries = this.extractMetaEntries(meta);
     this.eventViews = events.map((event, index) => this.toEventView(event, index));
     this.totalEvents = this.eventViews.length;
@@ -416,12 +434,399 @@ export class AppComponent {
     );
   }
 
+  private buildPrettyMetaBlocks(meta: Record<string, unknown> | null): PrettyMetadataBlock[] {
+    if (!meta) {
+      return [];
+    }
+
+    const blocks: PrettyMetadataBlock[] = [];
+    const browser = this.asRecord(meta['browser']);
+    if (browser) {
+      blocks.push(this.buildBrowserBlock(browser));
+    }
+
+    const agent = this.asRecord(meta['agent']);
+    if (agent) {
+      blocks.push(this.buildAgentBlock(agent));
+    }
+
+    const settings = this.asRecord(meta['settings']);
+    if (settings) {
+      blocks.push(this.buildSettingsBlock(settings));
+    }
+
+    const templates = this.toRecordArray(meta['templates']);
+    if (templates.length > 0) {
+      blocks.push(this.buildTemplatesBlock(templates));
+    }
+
+    const widgetBlock = this.buildWidgetsBlock(meta, templates);
+    if (widgetBlock) {
+      blocks.push(widgetBlock);
+    }
+
+    return blocks;
+  }
+
+  private buildBrowserBlock(browser: Record<string, unknown>): PrettyMetadataBlock {
+    const os = this.asRecord(browser['os']);
+    const browserName = this.firstInline([browser['name'], browser['description']]) || 'Unknown';
+    const browserVersion = this.valueToInlineString(browser['version']) || 'n/a';
+
+    return {
+      key: 'browser',
+      title: 'Browser',
+      subtitle: `${browserName} ${browserVersion}`.trim(),
+      facts: [
+        { label: 'Name', value: this.valueToInlineString(browser['name']) || 'unknown' },
+        { label: 'Version', value: browserVersion },
+        { label: 'Layout Engine', value: this.valueToInlineString(browser['layout']) || 'n/a' },
+        {
+          label: 'OS',
+          value: this.firstInline([
+            os?.['family'],
+            os?.['name'],
+            browser['platform']
+          ]) || 'unknown'
+        },
+        { label: 'OS Version', value: this.valueToInlineString(os?.['version']) || 'n/a' },
+        { label: 'Architecture', value: this.valueToInlineString(os?.['architecture']) || 'n/a' }
+      ],
+      highlights: this.compactHighlights([
+        this.valueToInlineString(browser['description']),
+        this.valueToInlineString(browser['ua'])
+      ]),
+      rawValue: browser
+    };
+  }
+
+  private buildAgentBlock(agent: Record<string, unknown>): PrettyMetadataBlock {
+    const reasonCodes = this.toRecordArray(agent['reasonCodes']);
+    const reasonNames = reasonCodes
+      .map((reason) => this.firstInline([reason['friendlyName'], reason['code']]))
+      .filter((value) => value);
+
+    const name =
+      this.firstInline([
+        agent['displayName'],
+        `${this.valueToInlineString(agent['firstName'])} ${this.valueToInlineString(agent['lastName'])}`.trim()
+      ]) || 'Unknown Agent';
+
+    return {
+      key: 'agent',
+      title: 'Agent',
+      subtitle: name,
+      facts: [
+        { label: 'Handle', value: this.valueToInlineString(agent['handle']) || 'n/a' },
+        { label: 'Role', value: this.valueToInlineString(agent['role']) || 'n/a' },
+        { label: 'State', value: this.valueToInlineString(agent['state']) || 'n/a' },
+        { label: 'Channel', value: this.valueToInlineString(agent['channel']) || 'n/a' },
+        { label: 'Station', value: this.valueToInlineString(agent['stationId']) || 'n/a' },
+        { label: 'Agent ID', value: this.valueToInlineString(agent['agentId']) || 'n/a' },
+        { label: 'Provider', value: this.valueToInlineString(agent['providerId']) || 'n/a' },
+        { label: 'Reason Codes', value: `${reasonCodes.length}` }
+      ],
+      highlights: this.compactHighlights(reasonNames.slice(0, 10)),
+      rawValue: agent
+    };
+  }
+
+  private buildSettingsBlock(settings: Record<string, unknown>): PrettyMetadataBlock {
+    const selectedKeys = [
+      'environmentType',
+      'websocketsEnabled',
+      'hotdesk',
+      'isWebRTC',
+      'displayCanvasOnAlerting',
+      'workspacesLogsDownloadEnabled',
+      'workspacesLogsDataPrivacyEnabled',
+      'forceRefreshRate',
+      'maxDeferTime',
+      'customerManagementFQDN',
+      'pomWidgetLocation'
+    ];
+
+    const facts = selectedKeys
+      .map((key) => ({
+        label: this.prettyLabel(key),
+        value: this.prettyValue(settings[key])
+      }))
+      .filter((fact) => fact.value !== 'n/a');
+
+    const deferIntervals = this.prettyValue(settings['deferTimeIntervals']);
+    const settingsEntries = Object.keys(settings).length;
+
+    return {
+      key: 'settings',
+      title: 'Settings',
+      subtitle: `${settingsEntries} settings entries`,
+      facts,
+      highlights: this.compactHighlights([`Defer intervals: ${deferIntervals}`]),
+      rawValue: settings
+    };
+  }
+
+  private buildTemplatesBlock(templates: Record<string, unknown>[]): PrettyMetadataBlock {
+    let coreCount = 0;
+    let compressedCount = 0;
+    let totalTabs = 0;
+    let totalWidgetRefs = 0;
+
+    const templateNames = templates
+      .map((template) => this.firstInline([template['name'], template['id']]))
+      .filter((value) => value);
+
+    for (const template of templates) {
+      if (template['core'] === true) {
+        coreCount += 1;
+      }
+      if (template['useCompressedWorkspaces'] === true) {
+        compressedCount += 1;
+      }
+      totalTabs += this.countTemplateTabs(template);
+      totalWidgetRefs += this.countTemplateWidgetRefs(template);
+    }
+
+    return {
+      key: 'templates',
+      title: 'Templates',
+      subtitle: `${templates.length} templates`,
+      facts: [
+        { label: 'Core Templates', value: `${coreCount}` },
+        { label: 'Compressed Layouts', value: `${compressedCount}` },
+        { label: 'Total Tabs', value: `${totalTabs}` },
+        { label: 'Widget References', value: `${totalWidgetRefs}` }
+      ],
+      highlights: this.compactHighlights(templateNames.slice(0, 10)),
+      rawValue: templates
+    };
+  }
+
+  private buildWidgetsBlock(
+    meta: Record<string, unknown>,
+    templates: Record<string, unknown>[]
+  ): PrettyMetadataBlock | null {
+    const localStorage = this.asRecord(meta['localStorage']);
+    const widgetsRaw = this.valueToInlineString(localStorage?.['_cc.widgets']);
+    const widgetCatalog = this.parseWidgetCatalog(widgetsRaw);
+
+    const templateWidgetNames = this.extractTemplateWidgetNames(templates);
+    const catalogWidgetNames = widgetCatalog
+      .map((widget) => this.firstInline([widget['name'], widget['metadataName']]))
+      .filter((value) => value);
+    const uniqueNames = Array.from(new Set([...catalogWidgetNames, ...templateWidgetNames]));
+
+    if (widgetCatalog.length === 0 && uniqueNames.length === 0) {
+      return null;
+    }
+
+    return {
+      key: 'widgets',
+      title: 'Widgets',
+      subtitle: `${uniqueNames.length} unique widget names`,
+      facts: [
+        { label: 'Widget Catalog', value: `${widgetCatalog.length}` },
+        { label: 'Template Widget Refs', value: `${templateWidgetNames.length}` },
+        { label: 'Unique Names', value: `${uniqueNames.length}` }
+      ],
+      highlights: this.compactHighlights(uniqueNames.slice(0, 12)),
+      rawValue: {
+        widgetCatalog,
+        templateWidgetNames
+      }
+    };
+  }
+
+  private toRecordArray(value: unknown): Record<string, unknown>[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    const records: Record<string, unknown>[] = [];
+    for (const item of value) {
+      const record = this.asRecord(item);
+      if (record) {
+        records.push(record);
+      }
+    }
+
+    return records;
+  }
+
+  private parseWidgetCatalog(rawWidgets: string): Array<Record<string, unknown>> {
+    if (!rawWidgets) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(rawWidgets) as unknown;
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      const widgets: Array<Record<string, unknown>> = [];
+      for (const entry of parsed) {
+        const widget = this.asRecord(entry);
+        const metadata = this.asRecord(widget?.['metadata']);
+        const configuration = this.asRecord(widget?.['configuration']);
+
+        if (!widget) {
+          continue;
+        }
+
+        widgets.push({
+          name: this.firstInline([metadata?.['name'], configuration?.['name'], widget['name']]),
+          metadataName: this.valueToInlineString(metadata?.['name']),
+          description: this.valueToInlineString(metadata?.['description']),
+          library: this.valueToInlineString(metadata?.['libraryName']) || this.valueToInlineString(metadata?.['library']),
+          enabled: configuration?.['enabled'] === true
+        });
+      }
+
+      return widgets;
+    } catch {
+      return [];
+    }
+  }
+
+  private extractTemplateWidgetNames(templates: Record<string, unknown>[]): string[] {
+    const names: string[] = [];
+
+    for (const template of templates) {
+      const layout = this.asRecord(template['layout']);
+      if (!layout) {
+        continue;
+      }
+
+      for (const roleLayoutValue of Object.values(layout)) {
+        const roleLayout = this.asRecord(roleLayoutValue);
+        const tabs = this.asRecord(roleLayout?.['tabs']);
+        if (!tabs) {
+          continue;
+        }
+
+        for (const tabValue of Object.values(tabs)) {
+          const tab = this.asRecord(tabValue);
+          const widgets = tab?.['widgets'];
+          if (!Array.isArray(widgets)) {
+            continue;
+          }
+
+          for (const widget of widgets) {
+            const text = this.valueToInlineString(widget);
+            if (text) {
+              names.push(text);
+            }
+          }
+        }
+      }
+    }
+
+    return names;
+  }
+
+  private countTemplateTabs(template: Record<string, unknown>): number {
+    const layout = this.asRecord(template['layout']);
+    if (!layout) {
+      return 0;
+    }
+
+    let count = 0;
+    for (const roleLayoutValue of Object.values(layout)) {
+      const roleLayout = this.asRecord(roleLayoutValue);
+      const tabs = this.asRecord(roleLayout?.['tabs']);
+      if (tabs) {
+        count += Object.keys(tabs).length;
+      }
+    }
+
+    return count;
+  }
+
+  private countTemplateWidgetRefs(template: Record<string, unknown>): number {
+    const layout = this.asRecord(template['layout']);
+    if (!layout) {
+      return 0;
+    }
+
+    let count = 0;
+    for (const roleLayoutValue of Object.values(layout)) {
+      const roleLayout = this.asRecord(roleLayoutValue);
+      const tabs = this.asRecord(roleLayout?.['tabs']);
+      if (!tabs) {
+        continue;
+      }
+
+      for (const tabValue of Object.values(tabs)) {
+        const tab = this.asRecord(tabValue);
+        const widgets = tab?.['widgets'];
+        if (Array.isArray(widgets)) {
+          count += widgets.length;
+        }
+      }
+    }
+
+    return count;
+  }
+
+  private compactHighlights(values: string[]): string[] {
+    const highlights: string[] = [];
+
+    for (const value of values) {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        continue;
+      }
+
+      const compact = trimmed.length > 140 ? `${trimmed.slice(0, 137)}...` : trimmed;
+      highlights.push(compact);
+    }
+
+    return highlights;
+  }
+
+  private prettyLabel(key: string): string {
+    return key
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/[_-]+/g, ' ')
+      .replace(/\b\w/g, (character) => character.toUpperCase());
+  }
+
+  private prettyValue(value: unknown): string {
+    const inlineValue = this.valueToInlineString(value);
+    if (inlineValue) {
+      return inlineValue;
+    }
+
+    if (Array.isArray(value)) {
+      const items = value
+        .map((item) => this.valueToInlineString(item))
+        .filter((item) => item)
+        .slice(0, 5);
+
+      if (items.length === 0) {
+        return `Array(${value.length})`;
+      }
+
+      return `${items.join(', ')}${value.length > items.length ? ', ...' : ''}`;
+    }
+
+    const asObject = this.asRecord(value);
+    if (asObject) {
+      return `Object(${Object.keys(asObject).length})`;
+    }
+
+    return 'n/a';
+  }
+
   private extractMetaEntries(metaValue: Record<string, unknown> | null): MetaEntry[] {
     if (!metaValue) {
       return [];
     }
 
+    const prettyMetaKeys = new Set(['browser', 'agent', 'settings', 'templates', 'widgets']);
     return Object.entries(metaValue)
+      .filter(([key]) => !prettyMetaKeys.has(key))
       .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
       .map(([key, value]) => ({
         key,
@@ -559,6 +964,7 @@ export class AppComponent {
     this.fileName = '';
     this.applicationName = '-';
     this.totalEvents = 0;
+    this.prettyMetaBlocks = [];
     this.metaEntries = [];
     this.searchText = '';
     this.levelFilter = 'all';

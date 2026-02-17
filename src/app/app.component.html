@@ -94,18 +94,63 @@
       </div>
     </section>
 
-    @if (metaEntries.length > 0) {
+    @if (metaEntries.length > 0 || prettyMetaBlocks.length > 0) {
       <section class="panel metadata-panel">
         <h2>3. Metadata</h2>
+        @if (prettyMetaBlocks.length > 0) {
+          <div class="pretty-meta-grid">
+            @for (block of prettyMetaBlocks; track block.key) {
+              <article class="pretty-meta-card">
+                <div class="pretty-meta-header">
+                  <h3>{{ block.title }}</h3>
+                  <p>{{ block.subtitle }}</p>
+                </div>
+
+                <div class="pretty-facts-grid">
+                  @for (fact of block.facts; track fact.label) {
+                    <div class="pretty-fact">
+                      <span>{{ fact.label }}</span>
+                      <strong>{{ fact.value }}</strong>
+                    </div>
+                  }
+                </div>
+
+                @if (block.highlights.length > 0) {
+                  <div class="pretty-highlight-list">
+                    @for (highlight of block.highlights; track highlight) {
+                      <span class="pretty-highlight-item">{{ highlight }}</span>
+                    }
+                  </div>
+                }
+
+                <button
+                  type="button"
+                  class="json-btn meta-json-btn"
+                  (click)="toggleMetaJson('pretty-' + block.key)"
+                >
+                  {{ isMetaExpanded('pretty-' + block.key) ? 'Hide JSON' : 'View JSON' }}
+                </button>
+                @if (isMetaExpanded('pretty-' + block.key)) {
+                  <pre class="meta-json">{{ getMetaRawJson(block) }}</pre>
+                }
+              </article>
+            }
+          </div>
+        }
+
         <div class="metadata-grid">
           @for (entry of metaEntries; track entry.key) {
             <div class="meta-card">
               <span>{{ entry.key }}</span>
               <strong>{{ entry.value }}</strong>
-              <button type="button" class="json-btn meta-json-btn" (click)="toggleMetaJson(entry.key)">
-                {{ isMetaExpanded(entry.key) ? 'Hide JSON' : 'View JSON' }}
+              <button
+                type="button"
+                class="json-btn meta-json-btn"
+                (click)="toggleMetaJson('meta-' + entry.key)"
+              >
+                {{ isMetaExpanded('meta-' + entry.key) ? 'Hide JSON' : 'View JSON' }}
               </button>
-              @if (isMetaExpanded(entry.key)) {
+              @if (isMetaExpanded('meta-' + entry.key)) {
                 <pre class="meta-json">{{ getMetaRawJson(entry) }}</pre>
               }
             </div>
