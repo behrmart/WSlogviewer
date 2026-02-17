@@ -1,21 +1,22 @@
 :host {
-  --bg-cream: #f4efe4;
-  --bg-mist: #d9ebe9;
-  --panel: #fffcf6;
-  --panel-border: #c4d8d5;
-  --text-main: #1d2833;
-  --text-soft: #5e6974;
-  --accent: #127482;
-  --accent-strong: #0f5d68;
-  --warm: #d86c2a;
+  --bg-night: #070d14;
+  --bg-deep: #0d1620;
+  --panel: #16222f;
+  --panel-elev: #1b2a38;
+  --panel-border: #2b3e4f;
+  --text-main: #e6eef7;
+  --text-soft: #9bb0c4;
+  --accent: #2eb5ca;
+  --accent-strong: #7ad8e6;
 
   display: block;
   min-height: 100vh;
   color: var(--text-main);
+  color-scheme: dark;
   background:
-    radial-gradient(circle at 12% 0%, #ffd9b1 0%, transparent 35%),
-    radial-gradient(circle at 92% 20%, #c2ece4 0%, transparent 40%),
-    linear-gradient(160deg, var(--bg-cream) 0%, var(--bg-mist) 65%, #f3ebdc 100%);
+    radial-gradient(circle at 15% 0%, rgba(46, 181, 202, 0.14) 0%, transparent 35%),
+    radial-gradient(circle at 85% 10%, rgba(124, 84, 255, 0.1) 0%, transparent 32%),
+    linear-gradient(165deg, var(--bg-night) 0%, var(--bg-deep) 58%, #0b141d 100%);
 }
 
 .page {
@@ -55,7 +56,7 @@
   border-radius: 18px;
   padding: 1rem;
   margin-bottom: 1rem;
-  background: color-mix(in srgb, var(--panel) 92%, white 8%);
+  background: color-mix(in srgb, var(--panel) 94%, #0a1219 6%);
   backdrop-filter: blur(4px);
 }
 
@@ -75,7 +76,8 @@
   border: 1px dashed var(--panel-border);
   border-radius: 12px;
   padding: 0.75rem;
-  background: #fff;
+  background: #111c27;
+  color: var(--text-main);
   cursor: pointer;
 }
 
@@ -85,7 +87,7 @@
 }
 
 .error-line {
-  color: #b31f24;
+  color: #ff7d85;
   font-weight: 600;
 }
 
@@ -96,7 +98,7 @@
 }
 
 .summary-item {
-  background: #fff;
+  background: var(--panel-elev);
   border: 1px solid var(--panel-border);
   border-radius: 12px;
   padding: 0.75rem;
@@ -120,17 +122,17 @@
 }
 
 .clear-btn {
-  border: 1px solid color-mix(in srgb, var(--accent) 65%, white 35%);
-  background: color-mix(in srgb, var(--accent) 12%, white 88%);
+  border: 1px solid #37637a;
+  background: #173143;
   border-radius: 999px;
   padding: 0.4rem 0.8rem;
-  color: var(--accent-strong);
+  color: #9de6f1;
   font-weight: 700;
   cursor: pointer;
 }
 
 .clear-btn:hover {
-  background: color-mix(in srgb, var(--accent) 20%, white 80%);
+  background: #1d3f54;
 }
 
 .filters-grid {
@@ -154,8 +156,12 @@
   padding: 0.55rem 0.65rem;
   border-radius: 10px;
   border: 1px solid var(--panel-border);
-  background: #fff;
+  background: #111c27;
   color: var(--text-main);
+}
+
+.filters-grid input::placeholder {
+  color: #74899e;
 }
 
 .metadata-grid {
@@ -167,7 +173,7 @@
 .meta-card {
   border: 1px solid var(--panel-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--panel-elev);
   padding: 0.6rem;
   display: grid;
   gap: 0.3rem;
@@ -195,9 +201,9 @@
   line-height: 1.35;
   max-height: 260px;
   overflow: auto;
-  border: 1px solid #d8e8e4;
+  border: 1px solid #314556;
   border-radius: 8px;
-  background: #f7fbfa;
+  background: #0e1822;
   padding: 0.55rem;
 }
 
@@ -210,7 +216,7 @@
 .events-scroll {
   border: 1px solid var(--panel-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--panel-elev);
   overflow-x: auto;
 }
 
@@ -231,7 +237,7 @@
   gap: 0.5rem;
   align-items: center;
   padding: 0.42rem 0.6rem;
-  border-bottom: 1px solid #deebe8;
+  border-bottom: 1px solid #2a3e4f;
 }
 
 .event-line:last-child {
@@ -242,7 +248,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: #edf5f4;
+  background: #203443;
   font-weight: 700;
   color: var(--text-soft);
 }
@@ -262,21 +268,21 @@
 
 .col-level {
   font-weight: 700;
-  color: var(--accent-strong);
+  color: #8fdef0;
 }
 
 .col-level.level-error {
-  color: #9c1118;
-  background: #ffe7e7;
-  border: 1px solid #f1b6ba;
+  color: #ff969e;
+  background: #471b22;
+  border: 1px solid #7e3844;
   border-radius: 8px;
   padding: 0.14rem 0.4rem;
 }
 
 .col-level.level-warning {
-  color: #735100;
-  background: #fff3bf;
-  border: 1px solid #e9cf6a;
+  color: #f9dd84;
+  background: #4b3f1c;
+  border: 1px solid #7d6830;
   border-radius: 8px;
   padding: 0.14rem 0.4rem;
 }
@@ -291,10 +297,10 @@
 }
 
 .json-btn {
-  border: 1px solid #9ec8c2;
+  border: 1px solid #38637b;
   border-radius: 999px;
-  background: #f2fbf8;
-  color: #0f5d68;
+  background: #173246;
+  color: #9ce8f3;
   font-weight: 700;
   font-size: 0.75rem;
   padding: 0.22rem 0.55rem;
@@ -302,12 +308,12 @@
 }
 
 .json-btn:hover {
-  background: #def2ee;
+  background: #1d4157;
 }
 
 .event-json {
-  border-bottom: 1px solid #deebe8;
-  background: #f7fbfa;
+  border-bottom: 1px solid #2a3e4f;
+  background: #111d28;
   padding: 0.55rem 0.75rem;
 }
 
