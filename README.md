@@ -1,6 +1,6 @@
 # WS Log Viewer
 
-Angular web interface for loading and analyzing workspace JSON logs (for example `WORKSPACES-LOGS-WSWBIA-1754073450597.json`).
+Angular web interface for loading and analyzing Workspaces/OWC JSON logs (for example `WORKSPACES-LOGS-WSWBIA-1754073450597.json` and `OWC-BRIGITTE.VALENCIA-21.JAN.2026-03.45.PM.json`).
 
 ## Features
 
@@ -9,7 +9,7 @@ Angular web interface for loading and analyzing workspace JSON logs (for example
 - Search text across all event fields
 - Filter events by level, application, and context
 - Show metadata in a readable format
-- Render each event as a readable card with expandable raw JSON
+- Render events in a condensed one-line table-style view
 
 ## Run
 

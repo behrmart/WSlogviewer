@@ -10,7 +10,7 @@ interface EventView {
   application: string;
   context: string;
   message: string;
-  raw: string;
+  lineTitle: string;
   searchable: string;
 }
 
@@ -101,10 +101,18 @@ export class AppComponent {
 
     this.fileName = fileName;
     const rootRecord = this.asRecord(parsed);
-    this.applicationName = this.valueToInlineString(rootRecord?.['application']) || 'unknown';
-    this.metaEntries = this.extractMetaEntries(rootRecord?.['meta']);
-
     const events = this.extractEvents(parsed, rootRecord);
+    const meta = this.extractMetaRecord(rootRecord);
+
+    this.applicationName =
+      this.firstInline([
+        rootRecord?.['application'],
+        rootRecord?.['applicationName'],
+        meta?.['application'],
+        meta?.['environmentType']
+      ]) || this.inferApplicationFromEvents(events) || 'unknown';
+
+    this.metaEntries = this.extractMetaEntries(meta);
     this.eventViews = events.map((event, index) => this.toEventView(event, index));
     this.totalEvents = this.eventViews.length;
 
@@ -137,13 +145,47 @@ export class AppComponent {
     const data = this.asRecord(event['data']);
     const metaData = this.asRecord(event['metaData']);
 
-    const id = this.valueToInlineString(event['id']) || `${index + 1}`;
-    const timestamp = this.valueToInlineString(event['timestamp']) || '-';
-    const level = this.valueToInlineString(metaData?.['level']) || 'unknown';
-    const application = this.valueToInlineString(event['applicationName']) || 'unknown';
-    const context = this.valueToInlineString(event['context']) || 'none';
+    const id =
+      this.firstInline([event['id'], event['eventId'], event['uuid'], data?.['id']]) ||
+      `${index + 1}`;
+    const timestamp = this.normalizeTimestamp(
+      this.firstDefined([
+        event['timestamp'],
+        event['time'],
+        event['created'],
+        event['dateTime'],
+        data?.['timestamp'],
+        data?.['time']
+      ])
+    );
+
+    const level = this.inferLevel(event, data, metaData);
+    const application =
+      this.firstInline([
+        event['applicationName'],
+        event['application'],
+        event['channel'],
+        event['source'],
+        data?.['source'],
+        data?.['application'],
+        data?.['provider']
+      ]) || 'unknown';
+
+    const context =
+      this.firstInline([
+        event['context'],
+        event['topic'],
+        event['eventType'],
+        data?.['type'],
+        data?.['eventName'],
+        data?.['topic'],
+        data?.['event']
+      ]) || 'none';
+
     const message = this.extractMessage(event, data);
     const compactRaw = this.toJsonString(event, 0);
+    const searchableRaw = compactRaw.length > 1800 ? compactRaw.slice(0, 1800) : compactRaw;
+    const lineTitle = `${timestamp} | ${level} | ${application} | ${context} | ${message}`;
 
     return {
       uid: `${index}-${id}`,
@@ -153,11 +195,68 @@ export class AppComponent {
       application,
       context,
       message,
-      raw: this.toJsonString(event, 2),
-      searchable: `${id} ${timestamp} ${level} ${application} ${context} ${message} ${compactRaw}`
-        .toLowerCase()
-        .trim()
+      lineTitle,
+      searchable: `${id} ${lineTitle} ${searchableRaw}`.toLowerCase().trim()
     };
+  }
+
+  private inferLevel(
+    event: Record<string, unknown>,
+    data: Record<string, unknown> | null,
+    metaData: Record<string, unknown> | null
+  ): string {
+    const candidates: unknown[] = [
+      metaData?.['level'],
+      event['level'],
+      event['severity'],
+      data?.['level'],
+      data?.['severity'],
+      data?.['notificationType'],
+      event['channel']
+    ];
+
+    for (const candidate of candidates) {
+      const text = this.valueToInlineString(candidate);
+      if (!text) {
+        continue;
+      }
+
+      const normalized = this.normalizeLevel(text);
+      if (normalized) {
+        return normalized;
+      }
+    }
+
+    return 'UNKNOWN';
+  }
+
+  private normalizeLevel(value: string): string {
+    const upper = value.toUpperCase();
+
+    if (upper.includes('CRITICAL') || upper.includes('FATAL')) {
+      return 'CRITICAL';
+    }
+    if (upper.includes('ERROR') || upper === 'ERR') {
+      return 'ERROR';
+    }
+    if (upper.includes('WARN')) {
+      return 'WARNING';
+    }
+    if (upper.includes('DEBUG')) {
+      return 'DEBUG';
+    }
+    if (upper.includes('TRACE')) {
+      return 'TRACE';
+    }
+    if (upper.includes('INFO') || upper === 'LOG') {
+      return 'INFO';
+    }
+
+    if (/^[A-Z0-9_-]{2,20}$/.test(upper)) {
+      return upper;
+    }
+
+    return '';
   }
 
   private extractMessage(
@@ -166,9 +265,16 @@ export class AppComponent {
   ): string {
     const candidates: unknown[] = [
       data?.['message'],
+      event['message'],
+      data?.['detail'],
+      data?.['reason'],
       data?.['type'],
+      data?.['eventName'],
       data?.['event'],
-      event['message']
+      event['topic'],
+      event['type'],
+      data?.['code'],
+      event['code']
     ];
 
     for (const candidate of candidates) {
@@ -179,7 +285,7 @@ export class AppComponent {
     }
 
     if (data && Object.keys(data).length > 0) {
-      return `Data keys: ${Object.keys(data).join(', ')}`;
+      return `Data keys: ${Object.keys(data).slice(0, 6).join(', ')}`;
     }
 
     return 'No short message available';
@@ -190,26 +296,172 @@ export class AppComponent {
       return parsed;
     }
 
-    const events = rootRecord?.['events'];
-    return Array.isArray(events) ? events : [];
+    const dataRecord = this.asRecord(rootRecord?.['data']);
+    const payloadRecord = this.asRecord(rootRecord?.['payload']);
+
+    const directCandidates: unknown[] = [
+      rootRecord?.['events'],
+      rootRecord?.['logs'],
+      rootRecord?.['records'],
+      rootRecord?.['entries'],
+      rootRecord?.['items'],
+      dataRecord?.['events'],
+      dataRecord?.['logs'],
+      payloadRecord?.['events'],
+      payloadRecord?.['logs']
+    ];
+
+    for (const candidate of directCandidates) {
+      if (Array.isArray(candidate)) {
+        return candidate;
+      }
+    }
+
+    if (rootRecord) {
+      for (const value of Object.values(rootRecord)) {
+        if (Array.isArray(value) && this.looksLikeEventArray(value)) {
+          return value;
+        }
+      }
+    }
+
+    return [];
   }
 
-  private extractMetaEntries(metaValue: unknown): MetaEntry[] {
-    const meta = this.asRecord(metaValue);
-    if (!meta) {
+  private looksLikeEventArray(values: unknown[]): boolean {
+    const sampleSize = Math.min(values.length, 20);
+    let matches = 0;
+
+    for (let i = 0; i < sampleSize; i += 1) {
+      const entry = this.asRecord(values[i]);
+      if (!entry) {
+        continue;
+      }
+
+      if (
+        entry['timestamp'] !== undefined ||
+        entry['topic'] !== undefined ||
+        entry['message'] !== undefined ||
+        entry['event'] !== undefined ||
+        entry['data'] !== undefined
+      ) {
+        matches += 1;
+      }
+    }
+
+    return matches >= 1;
+  }
+
+  private extractMetaRecord(rootRecord: Record<string, unknown> | null): Record<string, unknown> | null {
+    return (
+      this.asRecord(rootRecord?.['meta']) ||
+      this.asRecord(rootRecord?.['metadata']) ||
+      this.asRecord(rootRecord?.['header']) ||
+      null
+    );
+  }
+
+  private extractMetaEntries(metaValue: Record<string, unknown> | null): MetaEntry[] {
+    if (!metaValue) {
       return [];
     }
 
-    return Object.entries(meta)
+    return Object.entries(metaValue)
       .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
       .map(([key, value]) => ({
         key,
-        value: this.valueToInlineString(value) || this.toJsonString(value, 0)
+        value: this.summarizeMetaValue(value)
       }));
+  }
+
+  private summarizeMetaValue(value: unknown): string {
+    const inlineValue = this.valueToInlineString(value);
+
+    if (inlineValue) {
+      return inlineValue.length > 180 ? `${inlineValue.slice(0, 177)}...` : inlineValue;
+    }
+
+    if (Array.isArray(value)) {
+      return `Array(${value.length})`;
+    }
+
+    const asObject = this.asRecord(value);
+    if (asObject) {
+      const keys = Object.keys(asObject);
+      const preview = keys.slice(0, 5).join(', ');
+      const suffix = keys.length > 5 ? ', ...' : '';
+      return `Object(${keys.length} keys): ${preview}${suffix}`;
+    }
+
+    return this.toJsonString(value, 0);
+  }
+
+  private inferApplicationFromEvents(events: unknown[]): string {
+    const sampleSize = Math.min(events.length, 100);
+
+    for (let i = 0; i < sampleSize; i += 1) {
+      const event = this.asRecord(events[i]);
+      const data = this.asRecord(event?.['data']);
+      const application = this.firstInline([
+        event?.['applicationName'],
+        event?.['application'],
+        event?.['channel'],
+        event?.['source'],
+        data?.['source']
+      ]);
+
+      if (application) {
+        return application;
+      }
+    }
+
+    return '';
   }
 
   private uniqueOptions(values: string[]): string[] {
     return Array.from(new Set(values)).sort((left, right) => left.localeCompare(right));
+  }
+
+  private firstInline(values: Array<unknown>): string {
+    for (const value of values) {
+      const text = this.valueToInlineString(value);
+      if (text) {
+        return text;
+      }
+    }
+
+    return '';
+  }
+
+  private firstDefined(values: Array<unknown>): unknown {
+    for (const value of values) {
+      if (value !== undefined && value !== null) {
+        return value;
+      }
+    }
+
+    return undefined;
+  }
+
+  private normalizeTimestamp(value: unknown): string {
+    const asText = this.valueToInlineString(value);
+    if (asText) {
+      return asText;
+    }
+
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return '-';
+    }
+
+    const raw = Math.trunc(value);
+    const milliseconds = raw > 99999999999 ? raw : raw * 1000;
+    const asDate = new Date(milliseconds);
+
+    if (!Number.isNaN(asDate.valueOf())) {
+      return asDate.toISOString();
+    }
+
+    return String(value);
   }
 
   private valueToInlineString(value: unknown): string {

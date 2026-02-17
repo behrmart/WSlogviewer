@@ -188,80 +188,60 @@
   font-weight: 700;
 }
 
-.events-list {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.event-card {
+.events-scroll {
   border: 1px solid var(--panel-border);
-  border-left: 6px solid var(--accent);
   border-radius: 12px;
   background: #fff;
-  padding: 0.85rem;
+  overflow-x: auto;
 }
 
-.event-top-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 0.75rem;
+.events-list {
+  display: grid;
+  min-width: 1100px;
 }
 
-.event-top-row time {
-  color: var(--text-soft);
-  font-size: 0.83rem;
-  white-space: nowrap;
+.event-line {
+  display: grid;
+  grid-template-columns: 230px 95px 180px 280px minmax(260px, 1fr);
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.42rem 0.6rem;
+  border-bottom: 1px solid #deebe8;
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+.event-line:last-child {
+  border-bottom: 0;
 }
 
-.chip {
-  border-radius: 999px;
-  padding: 0.2rem 0.55rem;
-  font-size: 0.78rem;
-  border: 1px solid var(--panel-border);
-  color: var(--text-soft);
-  background: #fff;
-}
-
-.level-chip {
-  background: color-mix(in srgb, var(--warm) 14%, white 86%);
-  color: #8b3e12;
-  border-color: color-mix(in srgb, var(--warm) 45%, white 55%);
-}
-
-.message {
-  margin: 0.6rem 0;
-  line-height: 1.4;
-}
-
-.event-id {
-  margin-bottom: 0.5rem;
-  color: var(--text-soft);
-  font-size: 0.85rem;
-}
-
-details summary {
-  cursor: pointer;
-  color: var(--accent-strong);
+.event-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #edf5f4;
   font-weight: 700;
+  color: var(--text-soft);
 }
 
-details pre {
-  margin: 0.55rem 0 0;
-  max-height: 360px;
-  overflow: auto;
-  padding: 0.65rem;
-  border-radius: 8px;
-  border: 1px solid #d5e2df;
-  background: #f7faf9;
-  font-size: 0.8rem;
-  line-height: 1.4;
+.event-head .cell {
+  font-size: 0.73rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.83rem;
+}
+
+.col-level {
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
+.col-message {
+  color: var(--text-main);
 }
 
 .empty-state {
@@ -291,13 +271,5 @@ details pre {
 
   .filters-grid {
     grid-template-columns: 1fr;
-  }
-
-  .event-top-row {
-    flex-direction: column;
-  }
-
-  .event-top-row time {
-    white-space: normal;
   }
 }
