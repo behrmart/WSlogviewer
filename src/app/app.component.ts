@@ -7,9 +7,11 @@ interface EventView {
   id: string;
   timestamp: string;
   level: string;
+  levelTone: 'error' | 'warning' | 'normal';
   application: string;
   context: string;
   message: string;
+  rawJson: string;
   lineTitle: string;
   searchable: string;
 }
@@ -17,6 +19,8 @@ interface EventView {
 interface MetaEntry {
   key: string;
   value: string;
+  rawValue: unknown;
+  rawJsonCache?: string;
 }
 
 @Component({
@@ -44,6 +48,8 @@ export class AppComponent {
   contextOptions: string[] = [];
 
   isLoaded = false;
+  expandedEventUid: string | null = null;
+  expandedMetaKey: string | null = null;
   filteredEvents: EventView[] = [];
   private eventViews: EventView[] = [];
 
@@ -69,6 +75,37 @@ export class AppComponent {
     this.applicationFilter = 'all';
     this.contextFilter = 'all';
     this.applyFilters();
+  }
+
+  toggleEventJson(eventUid: string): void {
+    this.expandedEventUid = this.expandedEventUid === eventUid ? null : eventUid;
+  }
+
+  isEventExpanded(eventUid: string): boolean {
+    return this.expandedEventUid === eventUid;
+  }
+
+  toggleMetaJson(metaKey: string): void {
+    this.expandedMetaKey = this.expandedMetaKey === metaKey ? null : metaKey;
+  }
+
+  isMetaExpanded(metaKey: string): boolean {
+    return this.expandedMetaKey === metaKey;
+  }
+
+  getMetaRawJson(entry: MetaEntry): string {
+    if (entry.rawJsonCache) {
+      return entry.rawJsonCache;
+    }
+
+    const maxChars = 120000;
+    const rawJson = this.toJsonString(entry.rawValue, 2);
+    entry.rawJsonCache =
+      rawJson.length > maxChars
+        ? `${rawJson.slice(0, maxChars)}\n... [truncated at ${maxChars} characters]`
+        : rawJson;
+
+    return entry.rawJsonCache;
   }
 
   private loadFile(file: File): void {
@@ -138,6 +175,10 @@ export class AppComponent {
 
       return matchesSearch && matchesLevel && matchesApplication && matchesContext;
     });
+
+    if (!this.filteredEvents.some((event) => event.uid === this.expandedEventUid)) {
+      this.expandedEventUid = null;
+    }
   }
 
   private toEventView(eventValue: unknown, index: number): EventView {
@@ -184,6 +225,7 @@ export class AppComponent {
 
     const message = this.extractMessage(event, data);
     const compactRaw = this.toJsonString(event, 0);
+    const rawJson = this.toJsonString(event, 2);
     const searchableRaw = compactRaw.length > 1800 ? compactRaw.slice(0, 1800) : compactRaw;
     const lineTitle = `${timestamp} | ${level} | ${application} | ${context} | ${message}`;
 
@@ -192,12 +234,25 @@ export class AppComponent {
       id,
       timestamp,
       level,
+      levelTone: this.getLevelTone(level),
       application,
       context,
       message,
+      rawJson,
       lineTitle,
       searchable: `${id} ${lineTitle} ${searchableRaw}`.toLowerCase().trim()
     };
+  }
+
+  private getLevelTone(level: string): 'error' | 'warning' | 'normal' {
+    const upper = level.toUpperCase();
+    if (upper.includes('ERROR') || upper.includes('CRITICAL') || upper.includes('FATAL')) {
+      return 'error';
+    }
+    if (upper.includes('WARN')) {
+      return 'warning';
+    }
+    return 'normal';
   }
 
   private inferLevel(
@@ -370,7 +425,8 @@ export class AppComponent {
       .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
       .map(([key, value]) => ({
         key,
-        value: this.summarizeMetaValue(value)
+        value: this.summarizeMetaValue(value),
+        rawValue: value
       }));
   }
 
@@ -513,6 +569,8 @@ export class AppComponent {
     this.contextOptions = [];
     this.eventViews = [];
     this.filteredEvents = [];
+    this.expandedEventUid = null;
+    this.expandedMetaKey = null;
     this.isLoaded = false;
   }
 }

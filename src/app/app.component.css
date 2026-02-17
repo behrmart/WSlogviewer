@@ -20,9 +20,10 @@
 
 .page {
   box-sizing: border-box;
-  max-width: 1200px;
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
-  padding: 2rem 1rem 3rem;
+  padding: 2rem clamp(0.85rem, 2vw, 2.25rem) 3rem;
 }
 
 .hero {
@@ -182,6 +183,24 @@
   overflow-wrap: anywhere;
 }
 
+.meta-json-btn {
+  justify-self: start;
+}
+
+.meta-json {
+  margin: 0.25rem 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid #d8e8e4;
+  border-radius: 8px;
+  background: #f7fbfa;
+  padding: 0.55rem;
+}
+
 .events-count {
   color: var(--text-soft);
   font-size: 0.9rem;
@@ -197,12 +216,18 @@
 
 .events-list {
   display: grid;
-  min-width: 1100px;
+  width: max(100%, 1180px);
 }
 
 .event-line {
   display: grid;
-  grid-template-columns: 230px 95px 180px 280px minmax(260px, 1fr);
+  grid-template-columns:
+    minmax(175px, 1.25fr)
+    110px
+    minmax(120px, 1fr)
+    minmax(150px, 1.2fr)
+    minmax(260px, 3fr)
+    120px;
   gap: 0.5rem;
   align-items: center;
   padding: 0.42rem 0.6rem;
@@ -240,8 +265,60 @@
   color: var(--accent-strong);
 }
 
+.col-level.level-error {
+  color: #9c1118;
+  background: #ffe7e7;
+  border: 1px solid #f1b6ba;
+  border-radius: 8px;
+  padding: 0.14rem 0.4rem;
+}
+
+.col-level.level-warning {
+  color: #735100;
+  background: #fff3bf;
+  border: 1px solid #e9cf6a;
+  border-radius: 8px;
+  padding: 0.14rem 0.4rem;
+}
+
 .col-message {
   color: var(--text-main);
+}
+
+.col-action {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.json-btn {
+  border: 1px solid #9ec8c2;
+  border-radius: 999px;
+  background: #f2fbf8;
+  color: #0f5d68;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.22rem 0.55rem;
+  cursor: pointer;
+}
+
+.json-btn:hover {
+  background: #def2ee;
+}
+
+.event-json {
+  border-bottom: 1px solid #deebe8;
+  background: #f7fbfa;
+  padding: 0.55rem 0.75rem;
+}
+
+.event-json pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  max-height: 320px;
+  overflow: auto;
 }
 
 .empty-state {

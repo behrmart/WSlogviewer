@@ -102,6 +102,12 @@
             <div class="meta-card">
               <span>{{ entry.key }}</span>
               <strong>{{ entry.value }}</strong>
+              <button type="button" class="json-btn meta-json-btn" (click)="toggleMetaJson(entry.key)">
+                {{ isMetaExpanded(entry.key) ? 'Hide JSON' : 'View JSON' }}
+              </button>
+              @if (isMetaExpanded(entry.key)) {
+                <pre class="meta-json">{{ getMetaRawJson(entry) }}</pre>
+              }
             </div>
           }
         </div>
@@ -125,16 +131,34 @@
               <span class="cell col-app">Source</span>
               <span class="cell col-context">Context</span>
               <span class="cell col-message">Event</span>
+              <span class="cell col-action">JSON</span>
             </div>
 
             @for (event of filteredEvents; track event.uid) {
               <article class="event-line" [title]="event.lineTitle">
                 <span class="cell col-time">{{ event.timestamp }}</span>
-                <span class="cell col-level">{{ event.level }}</span>
+                <span
+                  class="cell col-level"
+                  [class.level-error]="event.levelTone === 'error'"
+                  [class.level-warning]="event.levelTone === 'warning'"
+                >
+                  {{ event.level }}
+                </span>
                 <span class="cell col-app">{{ event.application }}</span>
                 <span class="cell col-context">{{ event.context }}</span>
                 <span class="cell col-message">#{{ event.id }} · {{ event.message }}</span>
+                <span class="cell col-action">
+                  <button type="button" class="json-btn" (click)="toggleEventJson(event.uid)">
+                    {{ isEventExpanded(event.uid) ? 'Hide JSON' : 'View JSON' }}
+                  </button>
+                </span>
               </article>
+
+              @if (isEventExpanded(event.uid)) {
+                <div class="event-json">
+                  <pre>{{ event.rawJson }}</pre>
+                </div>
+              }
             }
           </div>
         </div>
