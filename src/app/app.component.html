@@ -1,0 +1,146 @@
+<main class="page">
+  <header class="hero">
+    <p class="eyebrow">Angular + JSON analysis</p>
+    <h1>{{ title }}</h1>
+    <p>
+      Upload a workspace log JSON file, run text filters, and inspect every event in a
+      readable format.
+    </p>
+  </header>
+
+  <section class="panel upload-panel">
+    <h2>1. Upload file</h2>
+    <label class="file-picker" for="jsonFileInput">
+      <span>Select a JSON file</span>
+      <input
+        id="jsonFileInput"
+        type="file"
+        accept=".json,application/json"
+        (change)="onFileSelected($event)"
+      />
+    </label>
+
+    @if (fileName) {
+      <p class="status-line">Loaded file: <strong>{{ fileName }}</strong></p>
+    }
+
+    @if (parseError) {
+      <p class="error-line">{{ parseError }}</p>
+    }
+  </section>
+
+  @if (isLoaded) {
+    <section class="panel summary-panel">
+      <div class="summary-item">
+        <span class="summary-label">Application</span>
+        <strong>{{ applicationName }}</strong>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Events in file</span>
+        <strong>{{ totalEvents }}</strong>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Events displayed</span>
+        <strong>{{ filteredEvents.length }}</strong>
+      </div>
+    </section>
+
+    <section class="panel filters-panel">
+      <div class="section-header">
+        <h2>2. Analyze with filters</h2>
+        <button type="button" class="clear-btn" (click)="clearFilters()">Clear filters</button>
+      </div>
+
+      <div class="filters-grid">
+        <label>
+          <span>Search text</span>
+          <input
+            type="search"
+            [(ngModel)]="searchText"
+            (ngModelChange)="onFilterChange()"
+            placeholder="Search in id, message, context, and raw JSON"
+          />
+        </label>
+
+        <label>
+          <span>Level</span>
+          <select [(ngModel)]="levelFilter" (ngModelChange)="onFilterChange()">
+            <option value="all">All levels</option>
+            @for (level of levelOptions; track level) {
+              <option [value]="level">{{ level }}</option>
+            }
+          </select>
+        </label>
+
+        <label>
+          <span>Application</span>
+          <select [(ngModel)]="applicationFilter" (ngModelChange)="onFilterChange()">
+            <option value="all">All applications</option>
+            @for (app of applicationOptions; track app) {
+              <option [value]="app">{{ app }}</option>
+            }
+          </select>
+        </label>
+
+        <label>
+          <span>Context</span>
+          <select [(ngModel)]="contextFilter" (ngModelChange)="onFilterChange()">
+            <option value="all">All contexts</option>
+            @for (context of contextOptions; track context) {
+              <option [value]="context">{{ context }}</option>
+            }
+          </select>
+        </label>
+      </div>
+    </section>
+
+    @if (metaEntries.length > 0) {
+      <section class="panel metadata-panel">
+        <h2>3. Metadata</h2>
+        <div class="metadata-grid">
+          @for (entry of metaEntries; track entry.key) {
+            <div class="meta-card">
+              <span>{{ entry.key }}</span>
+              <strong>{{ entry.value }}</strong>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <section class="panel events-panel">
+      <div class="section-header">
+        <h2>4. Events</h2>
+        <span class="events-count">{{ filteredEvents.length }} shown</span>
+      </div>
+
+      @if (filteredEvents.length === 0) {
+        <p class="empty-state">No events match the selected filters.</p>
+      } @else {
+        <div class="events-list">
+          @for (event of filteredEvents; track event.uid) {
+            <article class="event-card">
+              <div class="event-top-row">
+                <div class="chips">
+                  <span class="chip level-chip">{{ event.level }}</span>
+                  <span class="chip">{{ event.application }}</span>
+                  <span class="chip">{{ event.context }}</span>
+                </div>
+                <time>{{ event.timestamp }}</time>
+              </div>
+
+              <p class="message">{{ event.message }}</p>
+
+              <div class="event-id">Event ID: {{ event.id }}</div>
+
+              <details>
+                <summary>Raw JSON</summary>
+                <pre>{{ event.raw }}</pre>
+              </details>
+            </article>
+          }
+        </div>
+      }
+    </section>
+  }
+</main>
