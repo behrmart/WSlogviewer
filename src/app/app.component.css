@@ -396,6 +396,38 @@
   padding: 0.14rem 0.4rem;
 }
 
+.col-level.level-info {
+  color: #9fd6ff;
+  background: #1a3552;
+  border: 1px solid #2f5e8b;
+  border-radius: 8px;
+  padding: 0.14rem 0.4rem;
+}
+
+.col-level.level-debug {
+  color: #d5b9ff;
+  background: #3a2959;
+  border: 1px solid #63429b;
+  border-radius: 8px;
+  padding: 0.14rem 0.4rem;
+}
+
+.col-level.level-trace {
+  color: #9df0dd;
+  background: #1c4b47;
+  border: 1px solid #2f7f79;
+  border-radius: 8px;
+  padding: 0.14rem 0.4rem;
+}
+
+.col-level.level-neutral {
+  color: #bed0df;
+  background: #273846;
+  border: 1px solid #425b70;
+  border-radius: 8px;
+  padding: 0.14rem 0.4rem;
+}
+
 .col-message {
   color: var(--text-main);
 }

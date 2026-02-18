@@ -204,6 +204,10 @@
                   class="cell col-level"
                   [class.level-error]="event.levelTone === 'error'"
                   [class.level-warning]="event.levelTone === 'warning'"
+                  [class.level-info]="event.levelTone === 'info'"
+                  [class.level-debug]="event.levelTone === 'debug'"
+                  [class.level-trace]="event.levelTone === 'trace'"
+                  [class.level-neutral]="event.levelTone === 'neutral'"
                 >
                   {{ event.level }}
                 </span>

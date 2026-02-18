@@ -7,7 +7,7 @@ interface EventView {
   id: string;
   timestamp: string;
   level: string;
-  levelTone: 'error' | 'warning' | 'normal';
+  levelTone: 'error' | 'warning' | 'info' | 'debug' | 'trace' | 'neutral';
   application: string;
   context: string;
   message: string;
@@ -298,7 +298,7 @@ export class AppComponent {
     };
   }
 
-  private getLevelTone(level: string): 'error' | 'warning' | 'normal' {
+  private getLevelTone(level: string): 'error' | 'warning' | 'info' | 'debug' | 'trace' | 'neutral' {
     const upper = level.toUpperCase();
     if (upper.includes('ERROR') || upper.includes('CRITICAL') || upper.includes('FATAL')) {
       return 'error';
@@ -306,7 +306,17 @@ export class AppComponent {
     if (upper.includes('WARN')) {
       return 'warning';
     }
-    return 'normal';
+    if (upper.includes('DEBUG')) {
+      return 'debug';
+    }
+    if (upper.includes('TRACE')) {
+      return 'trace';
+    }
+    if (upper.includes('INFO') || upper.includes('LOG')) {
+      return 'info';
+    }
+
+    return 'neutral';
   }
 
   private inferLevel(
