@@ -52,7 +52,7 @@
       </div>
 
       <div class="filters-grid">
-        <label>
+        <label class="search-filter">
           <span>Search text</span>
           <input
             type="search"
@@ -62,35 +62,53 @@
           />
         </label>
 
-        <label>
+        <div class="filter-check-group">
           <span>Level</span>
-          <select [(ngModel)]="levelFilter" (ngModelChange)="onFilterChange()">
-            <option value="all">All levels</option>
+          <div class="filter-check-list">
             @for (level of levelOptions; track level) {
-              <option [value]="level">{{ level }}</option>
+              <label class="check-item">
+                <input
+                  type="checkbox"
+                  [checked]="isFilterOptionSelected('level', level)"
+                  (change)="toggleFilterOption('level', level, $event)"
+                />
+                <span>{{ level }}</span>
+              </label>
             }
-          </select>
-        </label>
+          </div>
+        </div>
 
-        <label>
+        <div class="filter-check-group">
           <span>Application / Channel</span>
-          <select [(ngModel)]="applicationFilter" (ngModelChange)="onFilterChange()">
-            <option value="all">All applications</option>
+          <div class="filter-check-list">
             @for (app of applicationOptions; track app) {
-              <option [value]="app">{{ app }}</option>
+              <label class="check-item">
+                <input
+                  type="checkbox"
+                  [checked]="isFilterOptionSelected('application', app)"
+                  (change)="toggleFilterOption('application', app, $event)"
+                />
+                <span>{{ app }}</span>
+              </label>
             }
-          </select>
-        </label>
+          </div>
+        </div>
 
-        <label>
+        <div class="filter-check-group">
           <span>Context / Topic</span>
-          <select [(ngModel)]="contextFilter" (ngModelChange)="onFilterChange()">
-            <option value="all">All contexts</option>
+          <div class="filter-check-list">
             @for (context of contextOptions; track context) {
-              <option [value]="context">{{ context }}</option>
+              <label class="check-item">
+                <input
+                  type="checkbox"
+                  [checked]="isFilterOptionSelected('context', context)"
+                  (change)="toggleFilterOption('context', context, $event)"
+                />
+                <span>{{ context }}</span>
+              </label>
             }
-          </select>
-        </label>
+          </div>
+        </div>
       </div>
     </section>
 

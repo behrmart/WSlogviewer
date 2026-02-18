@@ -46,7 +46,7 @@ interface PrettyMetadataBlock extends JsonPreviewTarget {
   styleUrl: './app.component.css'
 })
 export class AppComponent {
-  title = 'Workspace JSON Log Viewer';
+  title = 'Workspaces JSON Log Viewer';
   fileName = '';
   parseError = '';
 
@@ -56,9 +56,9 @@ export class AppComponent {
   prettyMetaBlocks: PrettyMetadataBlock[] = [];
 
   searchText = '';
-  levelFilter = 'all';
-  applicationFilter = 'all';
-  contextFilter = 'all';
+  selectedLevels: string[] = [];
+  selectedApplications: string[] = [];
+  selectedContexts: string[] = [];
 
   levelOptions: string[] = [];
   applicationOptions: string[] = [];
@@ -88,10 +88,43 @@ export class AppComponent {
 
   clearFilters(): void {
     this.searchText = '';
-    this.levelFilter = 'all';
-    this.applicationFilter = 'all';
-    this.contextFilter = 'all';
+    this.selectedLevels = [];
+    this.selectedApplications = [];
+    this.selectedContexts = [];
     this.applyFilters();
+  }
+
+  toggleFilterOption(
+    filterType: 'level' | 'application' | 'context',
+    option: string,
+    event: Event
+  ): void {
+    const input = event.target as HTMLInputElement;
+    const checked = input.checked;
+
+    if (filterType === 'level') {
+      this.selectedLevels = this.toggleSelection(this.selectedLevels, option, checked);
+    } else if (filterType === 'application') {
+      this.selectedApplications = this.toggleSelection(this.selectedApplications, option, checked);
+    } else {
+      this.selectedContexts = this.toggleSelection(this.selectedContexts, option, checked);
+    }
+
+    this.applyFilters();
+  }
+
+  isFilterOptionSelected(
+    filterType: 'level' | 'application' | 'context',
+    option: string
+  ): boolean {
+    if (filterType === 'level') {
+      return this.selectedLevels.includes(option);
+    }
+    if (filterType === 'application') {
+      return this.selectedApplications.includes(option);
+    }
+
+    return this.selectedContexts.includes(option);
   }
 
   toggleEventJson(eventUid: string): void {
@@ -186,10 +219,13 @@ export class AppComponent {
 
     this.filteredEvents = this.eventViews.filter((event) => {
       const matchesSearch = !searchTerm || event.searchable.includes(searchTerm);
-      const matchesLevel = this.levelFilter === 'all' || event.level === this.levelFilter;
+      const matchesLevel =
+        this.selectedLevels.length === 0 || this.selectedLevels.includes(event.level);
       const matchesApplication =
-        this.applicationFilter === 'all' || event.application === this.applicationFilter;
-      const matchesContext = this.contextFilter === 'all' || event.context === this.contextFilter;
+        this.selectedApplications.length === 0 ||
+        this.selectedApplications.includes(event.application);
+      const matchesContext =
+        this.selectedContexts.length === 0 || this.selectedContexts.includes(event.context);
 
       return matchesSearch && matchesLevel && matchesApplication && matchesContext;
     });
@@ -883,6 +919,19 @@ export class AppComponent {
     return Array.from(new Set(values)).sort((left, right) => left.localeCompare(right));
   }
 
+  private toggleSelection(values: string[], option: string, checked: boolean): string[] {
+    const hasOption = values.includes(option);
+
+    if (checked && !hasOption) {
+      return [...values, option];
+    }
+    if (!checked && hasOption) {
+      return values.filter((value) => value !== option);
+    }
+
+    return values;
+  }
+
   private firstInline(values: Array<unknown>): string {
     for (const value of values) {
       const text = this.valueToInlineString(value);
@@ -967,9 +1016,9 @@ export class AppComponent {
     this.prettyMetaBlocks = [];
     this.metaEntries = [];
     this.searchText = '';
-    this.levelFilter = 'all';
-    this.applicationFilter = 'all';
-    this.contextFilter = 'all';
+    this.selectedLevels = [];
+    this.selectedApplications = [];
+    this.selectedContexts = [];
     this.levelOptions = [];
     this.applicationOptions = [];
     this.contextOptions = [];

@@ -137,11 +137,12 @@
 
 .filters-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
-.filters-grid label {
+.filters-grid > label,
+.filter-check-group > span {
   display: grid;
   gap: 0.45rem;
   color: var(--text-soft);
@@ -149,8 +150,11 @@
   font-weight: 600;
 }
 
-.filters-grid input,
-.filters-grid select {
+.search-filter {
+  grid-column: 1 / -1;
+}
+
+.search-filter input {
   width: 100%;
   box-sizing: border-box;
   padding: 0.55rem 0.65rem;
@@ -160,8 +164,40 @@
   color: var(--text-main);
 }
 
-.filters-grid input::placeholder {
+.search-filter input::placeholder {
   color: #74899e;
+}
+
+.filter-check-group {
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: #111c27;
+  padding: 0.55rem 0.65rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.filter-check-list {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 170px;
+  overflow: auto;
+  padding-right: 0.2rem;
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.84rem;
+  color: var(--text-main);
+}
+
+.check-item input[type='checkbox'] {
+  accent-color: var(--accent);
+  width: 0.95rem;
+  height: 0.95rem;
+  margin: 0;
 }
 
 .metadata-grid {
