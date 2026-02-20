@@ -1,6 +1,11 @@
 # WS Log Viewer
 
-Angular web interface for loading and analyzing Workspaces/OWC JSON logs (for example `WORKSPACES-LOGS-WSWBIA-1754073450597.json` and `OWC-BRIGITTE.VALENCIA-21.JAN.2026-03.45.PM.json`).
+Angular web interface for loading and analyzing Avaya Workspaces Oceana/AXP JSON logs.
+
+by Bernardo Felipe Martinez Meave https://github.com/behrmart
+https://www.linkedin.com/in/bernardo-f-mart%C3%ADnez-meave-608421a/
+
+Application is built on Angular and TypeScript. Optimized by OpenAI Codex in Visual Studio Code.
 
 ## Features
 
